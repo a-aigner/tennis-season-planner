@@ -1,3 +1,20 @@
+# Player Game Day Tracker - Team Management Application
 # https://www.robotstxt.org/robotstxt.html
+
 User-agent: *
-Disallow:
+Allow: /
+
+# Allow search engines to index the main application
+Allow: /index.html
+Allow: /static/
+
+# Disallow access to build artifacts and development files
+Disallow: /build/
+Disallow: /node_modules/
+Disallow: /*.map$
+Disallow: /*.json$
+
+# Allow all other content for this team planning tool
+Allow: /favicon.ico
+Allow: /logo*.png
+Allow: /manifest.json
