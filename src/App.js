@@ -24,6 +24,76 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import './App.css';
 
+// Sortable Player Row Component
+const SortablePlayerRow = ({ player, updatePlayer, deletePlayer, calculateParticipation }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: player.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr 
+      ref={setNodeRef} 
+      style={style}
+      className={`player-row ${isDragging ? 'dragging' : ''}`}
+    >
+      <td className="drag-handle-cell">
+        <button
+          className="drag-handle"
+          {...attributes}
+          {...listeners}
+          title="Drag to reorder"
+        >
+          <GripVertical size={14} />
+        </button>
+      </td>
+      <td className="name-cell">
+        <div className="name-inputs">
+          <input
+            type="text"
+            value={player.firstName}
+            onChange={(e) => updatePlayer(player.id, 'firstName', e.target.value)}
+            className="name-input first-name"
+            placeholder="First Name"
+          />
+          <input
+            type="text"
+            value={player.lastName}
+            onChange={(e) => updatePlayer(player.id, 'lastName', e.target.value)}
+            className="name-input last-name"
+            placeholder="Last Name"
+          />
+        </div>
+      </td>
+      <td className="participation-cell">
+        <div className="participation-info">
+          <span className="participation-count">{calculateParticipation(player.id)}</span>
+          <span className="participation-label">games</span>
+        </div>
+      </td>
+      <td className="actions-cell">
+        <button
+          onClick={() => deletePlayer(player.id)}
+          className="btn-delete-minimal"
+          title="Delete player"
+        >
+          <Trash2 size={14} />
+        </button>
+      </td>
+    </tr>
+  );
+};
+
 const PlayerGameDayTracker = () => {
   const theme = useTheme();
   // Load data from localStorage or use defaults
@@ -126,7 +196,7 @@ const PlayerGameDayTracker = () => {
   };
 
   const updatePlayer = (id, field, value) => {
-    setPlayers(players.map(p => p.id === id ? { ...p, [field]: value } : p));
+    setPlayers(prevPlayers => prevPlayers.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
   const deletePlayer = (id) => {
@@ -289,74 +359,6 @@ const PlayerGameDayTracker = () => {
     }
   };
 
-  // Sortable Player Row Component
-  const SortablePlayerRow = ({ player, index }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: player.id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-    };
-
-    return (
-      <tr 
-        ref={setNodeRef} 
-        style={style}
-        className={`player-row ${isDragging ? 'dragging' : ''}`}
-      >
-        <td className="drag-handle-cell">
-          <button
-            className="drag-handle"
-            {...attributes}
-            {...listeners}
-            title="Drag to reorder"
-          >
-            <GripVertical size={16} />
-          </button>
-        </td>
-        <td>
-          <input
-            type="text"
-            value={player.firstName}
-            onChange={(e) => updatePlayer(player.id, 'firstName', e.target.value)}
-            className="input-field"
-            placeholder="First Name"
-          />
-        </td>
-        <td>
-          <input
-            type="text"
-            value={player.lastName}
-            onChange={(e) => updatePlayer(player.id, 'lastName', e.target.value)}
-            className="input-field"
-            placeholder="Last Name"
-          />
-        </td>
-        <td className="text-center">
-          <span className="participation-badge">
-            {calculateParticipation(player.id)}
-          </span>
-        </td>
-        <td className="text-center">
-          <button
-            onClick={() => deletePlayer(player.id)}
-            className="btn-delete"
-            title="Delete player"
-          >
-            <Trash2 size={18} />
-          </button>
-        </td>
-      </tr>
-    );
-  };
 
   return (
     <div className="app-container">
@@ -479,16 +481,21 @@ const PlayerGameDayTracker = () => {
                   <thead>
                     <tr>
                       <th className="drag-handle-header"></th>
-                      <th>First Name</th>
-                      <th>Last Name</th>
-                      <th className="text-center">Game Days</th>
-                      <th className="text-center">Actions</th>
+                      <th>Player Name</th>
+                      <th className="text-center">Games</th>
+                      <th className="text-center"></th>
                     </tr>
                   </thead>
                   <tbody>
                     <SortableContext items={players.map(p => p.id)} strategy={verticalListSortingStrategy}>
                       {players.map((player, index) => (
-                        <SortablePlayerRow key={player.id} player={player} index={index} />
+                        <SortablePlayerRow 
+                          key={player.id} 
+                          player={player} 
+                          updatePlayer={updatePlayer}
+                          deletePlayer={deletePlayer}
+                          calculateParticipation={calculateParticipation}
+                        />
                       ))}
                     </SortableContext>
                   </tbody>
