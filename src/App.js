@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { Download, Plus, Trash2, MapPin, Home, RotateCcw, Settings, Users, GripVertical } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { Download, Plus, Trash2, MapPin, Home, RotateCcw, Settings, Users, GripVertical, Sun, Moon, ChevronDown, ChevronUp } from 'lucide-react';
+import { ThemeProvider, useTheme } from './ThemeContext';
 import {
   DndContext,
   closestCenter,
@@ -22,6 +25,7 @@ import { CSS } from '@dnd-kit/utilities';
 import './App.css';
 
 const PlayerGameDayTracker = () => {
+  const theme = useTheme();
   // Load data from localStorage or use defaults
   const loadData = () => {
     try {
@@ -89,6 +93,7 @@ const PlayerGameDayTracker = () => {
   const [config, setConfig] = useState(initialData.config);
   const [teams, setTeams] = useState(initialData.teams);
   const [showConfig, setShowConfig] = useState(false);
+  const [showPlayers, setShowPlayers] = useState(true);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -97,6 +102,11 @@ const PlayerGameDayTracker = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Apply theme to body element
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme.isDarkMode ? 'dark' : 'light');
+  }, [theme.isDarkMode]);
 
   // Save data to localStorage whenever state changes
   useEffect(() => {
@@ -195,24 +205,42 @@ const PlayerGameDayTracker = () => {
     const wsPlayers = XLSX.utils.aoa_to_sheet(playersData);
     XLSX.utils.book_append_sheet(wb, wsPlayers, 'Players');
 
-    // Export each team's game days
+    // Export each team's game days in preview format
     Object.keys(teams).forEach((teamKey, index) => {
       const teamNumber = index + 1;
+      const gamedays = teams[teamKey];
+      
+      // Create preview-style table with matchdays as columns
+      const headerRow = [''].concat(gamedays.map(gd => `Game Day ${gd.gameDay}`));
+      const opponentRow = ['Opponent'].concat(gamedays.map(gd => gd.opponent || 'TBD'));
+      const dateRow = ['Date'].concat(gamedays.map(gd => gd.date || 'TBD'));
+      const locationRow = ['Location'].concat(gamedays.map(gd => gd.location));
+      // Create multiple rows for players - one player per row
+      const playersRows = [];
+      const maxPlayers = Math.max(...gamedays.map(gd => gd.players.length));
+      
+      for (let i = 0; i < maxPlayers; i++) {
+        const row = [i === 0 ? 'Players' : '']; // Only show "Players" label on first row
+        gamedays.forEach(gd => {
+          if (i < gd.players.length) {
+            const player = players.find(p => p.id === gd.players[i]);
+            row.push(player ? `${player.firstName || 'First'} ${player.lastName || 'Last'}` : '');
+          } else {
+            row.push(''); // Empty cell if no player for this position
+          }
+        });
+        playersRows.push(row);
+      }
+
       const teamData = [
-        ['Game Day', 'Date', 'Location', 'Opponent', 'Players'],
-        ...teams[teamKey].map(gd => [
-          `Game Day ${gd.gameDay}`,
-          gd.date || 'Not set',
-          gd.location,
-          gd.opponent,
-          gd.players.map(pid => {
-            const player = players.find(p => p.id === pid);
-            return player ? `${player.firstName} ${player.lastName}` : '';
-          }).join(', ')
-        ])
+        headerRow,
+        opponentRow,
+        dateRow,
+        locationRow,
+        ...playersRows,
       ];
       const wsTeam = XLSX.utils.aoa_to_sheet(teamData);
-      XLSX.utils.book_append_sheet(wb, wsTeam, `Team ${teamNumber}`);
+      XLSX.utils.book_append_sheet(wb, wsTeam, `Team ${teamNumber} Preview`);
     });
 
     XLSX.writeFile(wb, 'player_gameday_tracker.xlsx');
@@ -340,6 +368,14 @@ const PlayerGameDayTracker = () => {
           </div>
           <div className="header-actions">
             <button 
+              onClick={theme.toggleTheme} 
+              className="btn-theme" 
+              title={theme.isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme.isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              <span>{theme.isDarkMode ? "Light" : "Dark"}</span>
+            </button>
+            <button 
               onClick={() => setShowConfig(!showConfig)} 
               className="btn-config" 
               title="Configuration"
@@ -415,39 +451,51 @@ const PlayerGameDayTracker = () => {
         {/* Players Section */}
         <section className="section">
           <div className="section-header">
-            <h2 className="section-title">Players Roster</h2>
+            <div className="section-title-container">
+              <button 
+                onClick={() => setShowPlayers(!showPlayers)} 
+                className="collapse-toggle"
+                title={showPlayers ? "Collapse players list" : "Expand players list"}
+              >
+                {showPlayers ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+              </button>
+              <h2 className="section-title">Players Roster</h2>
+              <span className="player-count-badge">{players.length} players</span>
+            </div>
             <button onClick={addPlayer} className="btn-add">
               <Plus size={18} />
               <span>Add Player</span>
             </button>
           </div>
           
-          <div className="table-container">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <table className="players-table">
-                <thead>
-                  <tr>
-                    <th className="drag-handle-header"></th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th className="text-center">Game Days</th>
-                    <th className="text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <SortableContext items={players.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                    {players.map((player, index) => (
-                      <SortablePlayerRow key={player.id} player={player} index={index} />
-                    ))}
-                  </SortableContext>
-                </tbody>
-              </table>
-            </DndContext>
-          </div>
+          {showPlayers && (
+            <div className="table-container">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <table className="players-table">
+                  <thead>
+                    <tr>
+                      <th className="drag-handle-header"></th>
+                      <th>First Name</th>
+                      <th>Last Name</th>
+                      <th className="text-center">Game Days</th>
+                      <th className="text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <SortableContext items={players.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                      {players.map((player, index) => (
+                        <SortablePlayerRow key={player.id} player={player} index={index} />
+                      ))}
+                    </SortableContext>
+                  </tbody>
+                </table>
+              </DndContext>
+            </div>
+          )}
         </section>
 
         {/* Dynamic Team Sections */}
@@ -467,9 +515,184 @@ const PlayerGameDayTracker = () => {
 };
 
 const GameDaysSection = ({ title, gamedays, players, updateGameday, togglePlayer }) => {
+  const previewRef = useRef(null);
+
+  const exportTeamPreviewToExcel = () => {
+    const headerRow = [''].concat(gamedays.map(gd => `Game Day ${gd.gameDay}`));
+    const opponentRow = ['Opponent'].concat(gamedays.map(gd => gd.opponent || 'TBD'));
+    const dateRow = ['Date'].concat(gamedays.map(gd => gd.date || 'TBD'));
+    const locationRow = ['Location'].concat(gamedays.map(gd => gd.location));
+    
+    // Create multiple rows for players - one player per row
+    const playersRows = [];
+    const maxPlayers = Math.max(...gamedays.map(gd => gd.players.length));
+    
+    for (let i = 0; i < maxPlayers; i++) {
+      const row = [i === 0 ? 'Players' : '']; // Only show "Players" label on first row
+      gamedays.forEach(gd => {
+        if (i < gd.players.length) {
+          const player = players.find(p => p.id === gd.players[i]);
+          row.push(player ? `${player.firstName || 'First'} ${player.lastName || 'Last'}` : '');
+        } else {
+          row.push(''); // Empty cell if no player for this position
+        }
+      });
+      playersRows.push(row);
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([
+      headerRow,
+      opponentRow,
+      dateRow,
+      locationRow,
+      ...playersRows,
+    ]);
+    XLSX.utils.book_append_sheet(wb, ws, title);
+    XLSX.writeFile(wb, `${title.replace(/\s+/g, '_').toLowerCase()}_preview.xlsx`);
+  };
+
+  const exportTeamPreviewToPDF = async () => {
+    const element = previewRef.current;
+    if (!element) return;
+    
+    // Find the table element inside the preview container
+    const tableElement = element.querySelector('.preview-table');
+    if (!tableElement) return;
+    
+    // Temporarily remove scroll constraints to capture full width
+    const originalOverflow = element.style.overflow;
+    const originalWidth = element.style.width;
+    element.style.overflow = 'visible';
+    element.style.width = 'auto';
+    
+    // Capture the full table width
+    const canvas = await html2canvas(tableElement, { 
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      width: tableElement.scrollWidth,
+      height: tableElement.scrollHeight
+    });
+    
+    // Restore original styles
+    element.style.overflow = originalOverflow;
+    element.style.width = originalWidth;
+    
+    const imgData = canvas.toDataURL('image/png');
+
+    // Use landscape orientation for wide tables
+    const pdf = new jsPDF('l', 'pt', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    // Calculate dimensions to fit the page
+    const margin = 20;
+    const availableWidth = pageWidth - (margin * 2);
+    const availableHeight = pageHeight - (margin * 2);
+    
+    const imgWidth = availableWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let y = margin;
+    if (imgHeight > availableHeight) {
+      // If image is too tall, scale it down to fit
+      const ratio = availableHeight / imgHeight;
+      pdf.addImage(imgData, 'PNG', margin, y, imgWidth * ratio, availableHeight);
+    } else {
+      // If image fits, use full width
+      pdf.addImage(imgData, 'PNG', margin, y, imgWidth, imgHeight);
+    }
+    
+    pdf.save(`${title.replace(/\s+/g, '_').toLowerCase()}_preview.pdf`);
+  };
+
   return (
     <section className="section">
       <h2 className="section-title">{title}</h2>
+      
+      {/* Preview Section */}
+      <div className="preview-section">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <h3 className="preview-title" style={{ margin: 0 }}>Matchday Preview</h3>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button onClick={exportTeamPreviewToExcel} className="btn-export" title="Export preview as Excel">
+              <Download size={20} />
+              <span>Export Excel</span>
+            </button>
+            <button onClick={exportTeamPreviewToPDF} className="btn-theme" title="Export preview as PDF">
+              <Download size={20} />
+              <span>Export PDF</span>
+            </button>
+          </div>
+        </div>
+        <div className="preview-capture" ref={previewRef}>
+          <div className="preview-container">
+            <table className="preview-table">
+            <thead>
+              <tr>
+                <th className="preview-header">Matchday</th>
+                {gamedays.map((gd, index) => (
+                  <th key={index} className={`preview-header ${gd.location === 'Home' ? 'home-game' : ''}`}>
+                    {gd.gameDay}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="preview-label">Opponent</td>
+                {gamedays.map((gd, index) => (
+                  <td key={index} className={`preview-cell ${gd.location === 'Home' ? 'home-game' : ''}`}>
+                    {gd.opponent || 'TBD'}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="preview-label">Date</td>
+                {gamedays.map((gd, index) => (
+                  <td key={index} className={`preview-cell ${gd.location === 'Home' ? 'home-game' : ''}`}>
+                    {gd.date || 'TBD'}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="preview-label">Location</td>
+                {gamedays.map((gd, index) => (
+                  <td key={index} className={`preview-cell ${gd.location === 'Home' ? 'home-game' : ''}`}>
+                    <div className="location-info">
+                      {gd.location === 'Home' ? <Home size={16} /> : <MapPin size={16} />}
+                      <span>{gd.location}</span>
+                    </div>
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="preview-label">Players</td>
+                {gamedays.map((gd, index) => (
+                  <td key={index} className={`preview-cell ${gd.location === 'Home' ? 'home-game' : ''}`}>
+                    <div className="players-preview">
+                      {gd.players.length > 0 ? (
+                        players
+                          .filter(player => gd.players.includes(player.id))
+                          .map(player => (
+                            <div key={player.id} className="player-preview-item">
+                              {player.firstName || 'First'} {player.lastName || 'Last'}
+                            </div>
+                          ))
+                      ) : (
+                        <span className="no-players">No players selected</span>
+                      )}
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
       <div className="gamedays-grid">
         {gamedays.map((gd, index) => (
           <div key={index} className="gameday-card">
@@ -548,4 +771,12 @@ const GameDaysSection = ({ title, gamedays, players, updateGameday, togglePlayer
   );
 };
 
-export default PlayerGameDayTracker;
+const App = () => {
+  return (
+    <ThemeProvider>
+      <PlayerGameDayTracker />
+    </ThemeProvider>
+  );
+};
+
+export default App;

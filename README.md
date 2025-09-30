@@ -1,6 +1,6 @@
 # Player Game Day Tracker
 
-A modern, intuitive web application for managing sports teams, tracking player participation, and organizing game schedules. Built with React and featuring drag-and-drop functionality, configurable teams, and Excel export capabilities.
+A modern, intuitive web application for managing sports teams, tracking player participation, and organizing game schedules. Built with React and featuring drag-and-drop functionality, configurable teams, matchday previews, and comprehensive export capabilities.
 
 ## 🚀 Features
 
@@ -18,16 +18,27 @@ A modern, intuitive web application for managing sports teams, tracking player p
 
 ### 📅 **Game Day Management**
 - **Required Opponent Field**: Every game must have an opponent specified
-- **Location Tracking**: Home/Away game designation
+- **Location Tracking**: Home/Away game designation with visual indicators
 - **Date Scheduling**: Set specific dates for each game day
 - **Player Selection**: Checkbox system for selecting which players participate in each game
+- **Matchday Preview**: Visual overview of all matchdays with opponent, date, location, and players
 
-### 📊 **Data Export**
-- **Excel Export**: Download comprehensive reports in Excel format
-- **Multiple Sheets**: Separate sheets for players and each team's game days
-- **Complete Data**: Includes all player information, participation counts, and game details
+### 📊 **Matchday Preview System**
+- **Team Overview Tables**: Each team displays a comprehensive preview table
+- **Horizontal Scrolling**: Handles any number of matchdays with smooth scrolling
+- **Home Game Highlighting**: Visual distinction for home vs away games
+- **Player Order Preservation**: Shows players in the same order as the roster
+- **Real-time Updates**: Preview updates instantly when data changes
+
+### 📤 **Advanced Export Options**
+- **General Excel Export**: Download all teams and players in one file
+- **Per-Team Excel Export**: Individual team exports with preview-style formatting
+- **Per-Team PDF Export**: High-quality PDF exports of team previews
+- **One Player Per Row**: Excel exports show each player on separate rows for better readability
+- **Preview-Style Format**: Excel exports match the visual preview layout
 
 ### 🎨 **Modern UI/UX**
+- **Dark/Light Theme**: Toggle between dark and light modes with persistent preference
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **Intuitive Interface**: Clean, minimalistic design with smooth animations
 - **Visual Feedback**: Hover effects, drag animations, and loading states
@@ -39,6 +50,8 @@ A modern, intuitive web application for managing sports teams, tracking player p
 - **@dnd-kit** - Advanced drag and drop functionality
 - **Lucide React** - Beautiful, customizable icons
 - **SheetJS (XLSX)** - Excel file generation and export
+- **jsPDF** - PDF generation for team previews
+- **html2canvas** - High-quality image capture for PDF exports
 - **CSS3** - Modern styling with gradients, animations, and responsive design
 - **LocalStorage** - Client-side data persistence
 
@@ -90,10 +103,17 @@ A modern, intuitive web application for managing sports teams, tracking player p
 - **Enter opponent name** (required field)
 - Select which players will participate
 
-### 4. **Export Data**
-- Click **"Download Excel"** to export all data
-- Get separate sheets for players and each team
-- Includes participation counts and complete game details
+### 4. **View Matchday Previews**
+- Each team section shows a comprehensive preview table
+- See all matchdays at a glance with opponent, date, location, and players
+- Home games are highlighted for easy identification
+- Scroll horizontally to view all matchdays
+
+### 5. **Export Data**
+- **General Export**: Click **"Download Excel"** to export all teams and players
+- **Per-Team Excel**: Use the "Export Excel" button in each team's preview section
+- **Per-Team PDF**: Use the "Export PDF" button for high-quality team previews
+- All exports include complete data with improved formatting
 
 ## 🎯 Key Features Explained
 
@@ -119,6 +139,19 @@ A modern, intuitive web application for managing sports teams, tracking player p
 - No need to manually save - everything is preserved
 - Works offline and syncs when browser is refreshed
 
+### **Matchday Preview System**
+- Visual overview tables show all matchdays for each team
+- Home games are highlighted with special styling
+- Players appear in the same order as the roster
+- Horizontal scrolling handles any number of matchdays
+- Real-time updates when you modify game data
+
+### **Advanced Export Features**
+- **Excel Exports**: Preview-style formatting with matchdays as columns
+- **PDF Exports**: High-quality captures of team preview tables
+- **One Player Per Row**: Excel shows each player on separate rows for clarity
+- **Full Width Capture**: PDF exports include all columns, even those requiring scroll
+
 ## 🔧 Development
 
 ### Available Scripts
@@ -141,10 +174,12 @@ src/
 
 The application uses a modern design system with:
 - **Color Palette**: Purple/blue gradients with clean whites and grays
+- **Dark/Light Themes**: Automatic theme switching with persistent preferences
 - **Typography**: Inter font family for excellent readability
 - **Spacing**: Consistent padding and margins throughout
 - **Animations**: Smooth transitions and hover effects
 - **Responsive**: Mobile-first design that scales to all screen sizes
+- **Preview Tables**: Horizontal scrolling tables with home game highlighting
 
 ## 📱 Browser Support
 
@@ -172,7 +207,9 @@ This project is open source and available under the [MIT License](LICENSE).
 - Icons by [Lucide](https://lucide.dev/)
 - Drag and drop by [@dnd-kit](https://dndkit.com/)
 - Excel export by [SheetJS](https://sheetjs.com/)
+- PDF generation by [jsPDF](https://github.com/parallax/jsPDF)
+- Image capture by [html2canvas](https://html2canvas.hertzen.com/)
 
 ---
 
-**Player Game Day Tracker** - Making team management simple and intuitive! 🏆
+**Player Game Day Tracker** - Making team management simple and intuitive with powerful preview and export features! 🏆
